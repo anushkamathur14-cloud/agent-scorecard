@@ -29,9 +29,9 @@ function getColor(rec: string) {
 }
 
 const BubbleChart = ({ businessValue, feasibility, agentFit, recommendation, savedUseCases = [], expanded = false }: BubbleChartProps) => {
-  const width = expanded ? 480 : 320;
-  const height = expanded ? 480 : 320;
-  const padding = expanded ? 50 : 40;
+  const width = expanded ? 520 : 320;
+  const height = expanded ? 520 : 320;
+  const padding = expanded ? 55 : 40;
 
   const toX = (f: number) => padding + ((f - 1) / 4) * (width - padding * 2);
   const toY = (bv: number) => padding + ((5 - bv) / 4) * (height - padding * 2);
@@ -69,8 +69,8 @@ const BubbleChart = ({ businessValue, feasibility, agentFit, recommendation, sav
         )}
       </div>
 
-      <div className="hidden md:flex flex-col items-center">
-        <svg viewBox={`0 0 ${width} ${height}`} className={expanded ? "w-full" : "w-full max-w-xs"}>
+      <div className={`hidden md:flex flex-col items-center ${expanded ? "w-full" : ""}`}>
+        <svg viewBox={`0 0 ${width} ${height}`} className={expanded ? "w-full max-w-lg" : "w-full max-w-xs"}>
           <defs>
             <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
               <path d="M 40 0 L 0 0 0 40" fill="none" stroke="hsl(214, 20%, 88%)" strokeWidth="0.5" />
