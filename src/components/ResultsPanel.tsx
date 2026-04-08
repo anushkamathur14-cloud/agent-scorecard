@@ -89,7 +89,7 @@ const ResultsPanel = ({ agentFit, businessValue, feasibility, finalScore, recomm
 
           <div className="rounded-lg bg-muted p-3">
             <p className="font-mono text-xs text-muted-foreground text-center">
-              (0.4 × {businessValue.toFixed(1)}) + (0.35 × {agentFit.toFixed(1)}) + (0.25 × {feasibility.toFixed(1)}) = {finalScore.toFixed(1)}
+              (0.4 × BV) + (0.35 × AF) + (0.25 × F) = Final Score
             </p>
           </div>
 
