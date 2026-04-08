@@ -339,6 +339,30 @@ const Index = () => {
 
             <Card className="shadow-card">
               <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-foreground">Priority Matrix</h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setChartExpanded(true)}
+                    className="gap-1.5 text-xs text-muted-foreground"
+                  >
+                    <Maximize2 className="h-3.5 w-3.5" />
+                    Expand
+                  </Button>
+                </div>
+                <BubbleChart
+                  businessValue={businessAvg}
+                  feasibility={feasibilityAvg}
+                  agentFit={agentAvg}
+                  recommendation={recommendation}
+                  savedUseCases={savedUseCases}
+                />
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-card">
+              <CardContent className="p-4">
                 <h3 className="text-sm font-semibold text-foreground mb-3">Decision Matrix</h3>
                 <div className="space-y-2 text-xs">
                   {[
@@ -359,56 +383,35 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Expandable Chart + Scorecard side by side */}
-        <Card className="shadow-card overflow-hidden">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-foreground">Priority Matrix</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setChartExpanded((p) => !p)}
-                className="gap-1.5 text-xs text-muted-foreground"
-              >
-                {chartExpanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-                {chartExpanded ? "Collapse" : "Expand"}
-              </Button>
+        {/* Expanded chart dialog */}
+        <Dialog open={chartExpanded} onOpenChange={setChartExpanded}>
+          <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Priority Matrix — {useCaseName || "Current Scenario"}</DialogTitle>
+              <DialogDescription>
+                Bubble position shows feasibility vs. business value. Bubble size reflects agent fit.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid md:grid-cols-2 gap-6 items-start pt-2">
+              <BubbleChart
+                businessValue={businessAvg}
+                feasibility={feasibilityAvg}
+                agentFit={agentAvg}
+                recommendation={recommendation}
+                savedUseCases={savedUseCases}
+                expanded
+              />
+              <ResultsPanel
+                agentFit={agentAvg}
+                businessValue={businessAvg}
+                feasibility={feasibilityAvg}
+                finalScore={finalScore}
+                recommendation={recommendation}
+                useCaseName={useCaseName}
+              />
             </div>
-            <motion.div
-              layout
-              className={chartExpanded ? "grid md:grid-cols-2 gap-6 items-start" : ""}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-            >
-              <div className={chartExpanded ? "w-full" : "max-w-xs mx-auto"}>
-                <BubbleChart
-                  businessValue={businessAvg}
-                  feasibility={feasibilityAvg}
-                  agentFit={agentAvg}
-                  recommendation={recommendation}
-                  savedUseCases={savedUseCases}
-                  expanded={chartExpanded}
-                />
-              </div>
-              {chartExpanded && (
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.15 }}
-                  className="space-y-4"
-                >
-                  <ResultsPanel
-                    agentFit={agentAvg}
-                    businessValue={businessAvg}
-                    feasibility={feasibilityAvg}
-                    finalScore={finalScore}
-                    recommendation={recommendation}
-                    useCaseName={useCaseName}
-                  />
-                </motion.div>
-              )}
-            </motion.div>
-          </CardContent>
-        </Card>
+          </DialogContent>
+        </Dialog>
 
         <ComparisonView useCases={savedUseCases} onRemove={handleRemove} onLoad={handleLoad} />
       </main>
