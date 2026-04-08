@@ -2,6 +2,7 @@ import { EXAMPLE_USE_CASES } from "@/lib/useCaseData";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import { Lightbulb } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ExampleLibraryProps {
   onSelect: (example: typeof EXAMPLE_USE_CASES[number]) => void;
@@ -53,10 +54,25 @@ const ExampleLibrary = ({ onSelect }: ExampleLibraryProps) => {
                     {ex.recommendation}
                   </span>
                 </div>
-                <div className="mt-2 flex gap-3 text-[10px] text-muted-foreground">
-                  <span>AF {ex.agentAvg.toFixed(1)}</span>
-                  <span>BV {ex.businessAvg.toFixed(1)}</span>
-                  <span>FE {ex.feasibilityAvg.toFixed(1)}</span>
+                <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default border-b border-dotted border-muted-foreground/40">Agent Fit {ex.agentAvg.toFixed(1)}</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-[200px]">Average Agent Fit score (should this behave as an agent?)</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default border-b border-dotted border-muted-foreground/40">Business value {ex.businessAvg.toFixed(1)}</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-[200px]">Average Business Value score (impact and frequency)</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default border-b border-dotted border-muted-foreground/40">Feasibility {ex.feasibilityAvg.toFixed(1)}</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-[200px]">Average Feasibility score (data, integrations, risk, speed)</TooltipContent>
+                  </Tooltip>
                 </div>
               </CardContent>
             </Card>

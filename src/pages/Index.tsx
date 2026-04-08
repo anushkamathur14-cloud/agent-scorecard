@@ -1,16 +1,29 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import ScoringSection, { CriteriaConfig } from "@/components/ScoringSection";
 import ResultsPanel from "@/components/ResultsPanel";
 import BubbleChart from "@/components/BubbleChart";
 import ComparisonView from "@/components/ComparisonView";
 import ExampleLibrary from "@/components/ExampleLibrary";
 import { SavedUseCase, EXAMPLE_USE_CASES } from "@/lib/useCaseData";
+import { parseScorecardState, serializeScorecardState, buildScoreSummaryText } from "@/lib/scoreStateUrl";
 import { motion } from "framer-motion";
-import { Bot, TrendingUp, Wrench, RotateCcw, Save } from "lucide-react";
+import { Bot, TrendingUp, Wrench, RotateCcw, Save, Link2, Copy } from "lucide-react";
 import { toast } from "sonner";
+
+const INTRO_STORAGE_KEY = "agent-scorecard-intro-dismissed";
 
 const agentFitCriteria: CriteriaConfig[] = [
   { key: "decision", label: "Decision Complexity", description: { low: "Rule-based", mid: "Some judgment", high: "High judgment" } },
@@ -50,11 +63,34 @@ function getRecommendation(score: number) {
 }
 
 const Index = () => {
+  const [searchParams] = useSearchParams();
+  const appliedUrlRef = useRef(false);
+
   const [useCaseName, setUseCaseName] = useState("Customer Support Resolution Agent");
   const [agentScores, setAgentScores] = useState(initScores(agentFitCriteria));
   const [businessScores, setBusinessScores] = useState(initScores(businessValueCriteria));
   const [feasibilityScores, setFeasibilityScores] = useState(initScores(feasibilityCriteria));
   const [savedUseCases, setSavedUseCases] = useState<SavedUseCase[]>([]);
+  const [introOpen, setIntroOpen] = useState(() => {
+    try {
+      return localStorage.getItem(INTRO_STORAGE_KEY) !== "1";
+    } catch {
+      return true;
+    }
+  });
+
+  useEffect(() => {
+    const raw = searchParams.get("s");
+    if (!raw || appliedUrlRef.current) return;
+    const parsed = parseScorecardState(raw);
+    if (!parsed) return;
+    appliedUrlRef.current = true;
+    setUseCaseName(parsed.n);
+    setAgentScores({ ...parsed.a });
+    setBusinessScores({ ...parsed.b });
+    setFeasibilityScores({ ...parsed.f });
+    toast.info("Loaded scenario from link");
+  }, [searchParams]);
 
   const agentAvg = useMemo(() => avg(agentScores), [agentScores]);
   const businessAvg = useMemo(() => avg(businessScores), [businessScores]);
@@ -117,8 +153,77 @@ const Index = () => {
     setter((prev) => ({ ...prev, [key]: value }));
   };
 
+  const shareableUrl = useMemo(() => {
+    const s = serializeScorecardState({
+      useCaseName,
+      agentScores,
+      businessScores,
+      feasibilityScores,
+    });
+    const base = `${window.location.origin}${window.location.pathname}`;
+    return `${base}?${new URLSearchParams({ s }).toString()}`;
+  }, [useCaseName, agentScores, businessScores, feasibilityScores]);
+
+  const handleCopyLink = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(shareableUrl);
+      toast.success("Link copied — send it to share this exact scenario");
+    } catch {
+      toast.error("Could not copy link");
+    }
+  }, [shareableUrl]);
+
+  const handleCopySummary = useCallback(async () => {
+    const text = buildScoreSummaryText({
+      useCaseName,
+      agentAvg,
+      businessAvg,
+      feasibilityAvg,
+      finalScore,
+      recommendation,
+    });
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Summary copied to clipboard");
+    } catch {
+      toast.error("Could not copy summary");
+    }
+  }, [useCaseName, agentAvg, businessAvg, feasibilityAvg, finalScore, recommendation]);
+
+  const dismissIntro = () => {
+    try {
+      localStorage.setItem(INTRO_STORAGE_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+    setIntroOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-background">
+      <Dialog open={introOpen} onOpenChange={(o) => !o && dismissIntro()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>How to use the scorecard</DialogTitle>
+            <DialogDescription className="text-left space-y-2 pt-2">
+              <span className="block">
+                Adjust sliders for <strong>Agent Fit</strong>, <strong>Business Value</strong>, and <strong>Feasibility</strong>. Your{" "}
+                <strong>final score</strong> weights business value (40%), agent fit (35%), and feasibility (25%).
+              </span>
+              <span className="block">
+                Load <strong>examples</strong> from the library, <strong>save</strong> scenarios to the comparison table below (this session only), and use{" "}
+                <strong>Copy link</strong> to share the exact scores.
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" onClick={dismissIntro}>
+              Got it
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <header className="bg-hero py-16 px-4">
         <div className="container max-w-5xl mx-auto text-center">
           <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
@@ -137,35 +242,54 @@ const Index = () => {
       </header>
 
       <main className="container max-w-5xl mx-auto px-4 -mt-8 pb-20 space-y-8">
-        {/* Use case name input */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <Card className="shadow-elevated">
-            <CardContent className="p-4 flex flex-col sm:flex-row gap-3 items-center">
-              <Input
-                value={useCaseName}
-                onChange={(e) => setUseCaseName(e.target.value)}
-                placeholder="Enter your use case name..."
-                className="text-lg font-medium border-0 bg-transparent focus-visible:ring-0 flex-1"
-              />
-              <div className="flex gap-2 shrink-0">
-                <Button variant="default" size="sm" onClick={handleSave} className="gap-2">
-                  <Save className="h-3.5 w-3.5" />
-                  Save
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleReset} className="gap-2">
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  Reset
-                </Button>
+            <CardContent className="p-4 flex flex-col gap-3">
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+                <Input
+                  value={useCaseName}
+                  onChange={(e) => setUseCaseName(e.target.value)}
+                  placeholder="Enter your use case name..."
+                  className="text-lg font-medium border-0 bg-transparent focus-visible:ring-0 flex-1 min-h-[44px]"
+                  aria-label="Use case name"
+                />
+                <div className="flex flex-wrap gap-2 shrink-0 justify-end">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="default" size="sm" onClick={handleSave} className="gap-2 min-h-[44px] min-w-[44px]">
+                        <Save className="h-3.5 w-3.5" />
+                        Save for comparison
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs">
+                      Adds this scenario to the comparison table below. Kept for this browser session only—not synced to an account.
+                    </TooltipContent>
+                  </Tooltip>
+                  <Button variant="outline" size="sm" onClick={handleCopyLink} className="gap-2 min-h-[44px]">
+                    <Link2 className="h-3.5 w-3.5" />
+                    Copy link
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleCopySummary} className="gap-2 min-h-[44px]">
+                    <Copy className="h-3.5 w-3.5" />
+                    Copy summary
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleReset} className="gap-2 min-h-[44px]">
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Reset
+                  </Button>
+                </div>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Use <strong>Copy link</strong> to copy a URL that includes this scenario (opens the same scores for anyone).{" "}
+                <strong>Copy summary</strong> pastes a text recap for email or slides.
+              </p>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Example Library */}
         <ExampleLibrary onSelect={handleLoadExample} />
 
         <div className="grid gap-8 lg:grid-cols-3">
-          {/* Left: Scoring Sections */}
           <div className="lg:col-span-2 space-y-6">
             <ScoringSection
               title="Agent Fit"
@@ -202,7 +326,6 @@ const Index = () => {
             />
           </div>
 
-          {/* Right: Results */}
           <div className="space-y-6 lg:sticky lg:top-8 lg:self-start">
             <ResultsPanel
               agentFit={agentAvg}
@@ -246,12 +369,7 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Comparison Table */}
-        <ComparisonView
-          useCases={savedUseCases}
-          onRemove={handleRemove}
-          onLoad={handleLoad}
-        />
+        <ComparisonView useCases={savedUseCases} onRemove={handleRemove} onLoad={handleLoad} />
       </main>
     </div>
   );

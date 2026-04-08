@@ -14,14 +14,17 @@ const ScoreCriteriaSlider = ({ label, description, value, onChange }: ScoreCrite
         <span className="text-sm font-medium text-foreground">{label}</span>
         <span className="font-mono text-sm font-semibold text-primary">{value.toFixed(1)}</span>
       </div>
-      <Slider
-        value={[value]}
-        onValueChange={([v]) => onChange(v)}
-        min={1}
-        max={5}
-        step={0.5}
-        className="cursor-pointer"
-      />
+      <div className="py-2 touch-pan-y">
+        <Slider
+          value={[value]}
+          onValueChange={([v]) => onChange(v)}
+          min={1}
+          max={5}
+          step={0.5}
+          className="cursor-pointer min-h-[44px] flex items-center"
+          aria-label={`${label}, score ${value.toFixed(1)} out of 5`}
+        />
+      </div>
       <div className="flex justify-between text-xs text-muted-foreground">
         <span>{description.low}</span>
         <span>{description.mid}</span>

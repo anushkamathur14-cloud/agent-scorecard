@@ -1,5 +1,7 @@
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown } from "lucide-react";
 
 interface ResultsPanelProps {
   agentFit: number;
@@ -55,6 +57,9 @@ const ResultsPanel = ({ agentFit, businessValue, feasibility, finalScore, recomm
       <Card className="shadow-elevated overflow-hidden">
         <div className="bg-hero p-6 text-center">
           <p className="text-sm text-primary-foreground/70 mb-1">Final Score</p>
+          <p className="text-xs text-primary-foreground/55 max-w-sm mx-auto mb-2">
+            Weighted blend of three pillars—business outcomes are weighted highest, then how well an agent fits, then delivery risk.
+          </p>
           <motion.div
             className="font-mono text-5xl font-bold text-primary-foreground"
             key={finalScore}
@@ -88,9 +93,19 @@ const ResultsPanel = ({ agentFit, businessValue, feasibility, finalScore, recomm
             </p>
           </div>
 
-          <p className="text-center text-xs text-muted-foreground italic">
-            High value + high agent fit + reasonable feasibility = build
-          </p>
+          <Collapsible className="group text-left">
+            <CollapsibleTrigger className="flex w-full items-center justify-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground py-1">
+              How to read this score
+              <ChevronDown className="h-3.5 w-3.5 shrink-0 transition-transform group-data-[state=open]:rotate-180" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="text-xs text-muted-foreground space-y-2 pt-2 border-t border-border/60">
+              <p>
+                Each slider is 1–5. We average scores within Agent Fit, Business Value, and Feasibility, then combine:{" "}
+                <strong>40%</strong> business value, <strong>35%</strong> agent fit, <strong>25%</strong> feasibility—so a strong business case can lift the total even if execution is harder.
+              </p>
+              <p className="italic">Rule of thumb: high value + strong agent fit + reasonable feasibility → prioritize building or piloting.</p>
+            </CollapsibleContent>
+          </Collapsible>
         </CardContent>
       </Card>
     </motion.div>
