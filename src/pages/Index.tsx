@@ -1,12 +1,16 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import ScoringSection, { CriteriaConfig } from "@/components/ScoringSection";
 import ResultsPanel from "@/components/ResultsPanel";
 import BubbleChart from "@/components/BubbleChart";
+import ComparisonView from "@/components/ComparisonView";
+import ExampleLibrary from "@/components/ExampleLibrary";
+import { SavedUseCase, EXAMPLE_USE_CASES } from "@/lib/useCaseData";
 import { motion } from "framer-motion";
-import { Bot, TrendingUp, Wrench, RotateCcw } from "lucide-react";
+import { Bot, TrendingUp, Wrench, RotateCcw, Save } from "lucide-react";
+import { toast } from "sonner";
 
 const agentFitCriteria: CriteriaConfig[] = [
   { key: "decision", label: "Decision Complexity", description: { low: "Rule-based", mid: "Some judgment", high: "High judgment" } },
@@ -50,6 +54,7 @@ const Index = () => {
   const [agentScores, setAgentScores] = useState(initScores(agentFitCriteria));
   const [businessScores, setBusinessScores] = useState(initScores(businessValueCriteria));
   const [feasibilityScores, setFeasibilityScores] = useState(initScores(feasibilityCriteria));
+  const [savedUseCases, setSavedUseCases] = useState<SavedUseCase[]>([]);
 
   const agentAvg = useMemo(() => avg(agentScores), [agentScores]);
   const businessAvg = useMemo(() => avg(businessScores), [businessScores]);
@@ -67,13 +72,53 @@ const Index = () => {
     setUseCaseName("");
   };
 
+  const handleSave = useCallback(() => {
+    if (!useCaseName.trim()) {
+      toast.error("Please enter a use case name first");
+      return;
+    }
+    const newCase: SavedUseCase = {
+      id: crypto.randomUUID(),
+      name: useCaseName,
+      agentScores: { ...agentScores },
+      businessScores: { ...businessScores },
+      feasibilityScores: { ...feasibilityScores },
+      agentAvg,
+      businessAvg,
+      feasibilityAvg,
+      finalScore,
+      recommendation,
+    };
+    setSavedUseCases((prev) => [...prev, newCase]);
+    toast.success(`"${useCaseName}" saved for comparison`);
+  }, [useCaseName, agentScores, businessScores, feasibilityScores, agentAvg, businessAvg, feasibilityAvg, finalScore, recommendation]);
+
+  const handleRemove = (id: string) => {
+    setSavedUseCases((prev) => prev.filter((uc) => uc.id !== id));
+  };
+
+  const handleLoad = (uc: SavedUseCase) => {
+    setUseCaseName(uc.name);
+    setAgentScores({ ...uc.agentScores });
+    setBusinessScores({ ...uc.businessScores });
+    setFeasibilityScores({ ...uc.feasibilityScores });
+    toast.info(`Loaded "${uc.name}"`);
+  };
+
+  const handleLoadExample = (ex: typeof EXAMPLE_USE_CASES[number]) => {
+    setUseCaseName(ex.name);
+    setAgentScores({ ...ex.agentScores });
+    setBusinessScores({ ...ex.businessScores });
+    setFeasibilityScores({ ...ex.feasibilityScores });
+    toast.info(`Loaded example: "${ex.name}"`);
+  };
+
   const updateScore = (setter: typeof setAgentScores) => (key: string, value: number) => {
     setter((prev) => ({ ...prev, [key]: value }));
   };
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Hero */}
       <header className="bg-hero py-16 px-4">
         <div className="container max-w-5xl mx-auto text-center">
           <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
@@ -91,10 +136,10 @@ const Index = () => {
         </div>
       </header>
 
-      <main className="container max-w-5xl mx-auto px-4 -mt-8 pb-20">
+      <main className="container max-w-5xl mx-auto px-4 -mt-8 pb-20 space-y-8">
         {/* Use case name input */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <Card className="shadow-elevated mb-8">
+          <Card className="shadow-elevated">
             <CardContent className="p-4 flex flex-col sm:flex-row gap-3 items-center">
               <Input
                 value={useCaseName}
@@ -102,13 +147,22 @@ const Index = () => {
                 placeholder="Enter your use case name..."
                 className="text-lg font-medium border-0 bg-transparent focus-visible:ring-0 flex-1"
               />
-              <Button variant="outline" size="sm" onClick={handleReset} className="gap-2 shrink-0">
-                <RotateCcw className="h-3.5 w-3.5" />
-                Reset
-              </Button>
+              <div className="flex gap-2 shrink-0">
+                <Button variant="default" size="sm" onClick={handleSave} className="gap-2">
+                  <Save className="h-3.5 w-3.5" />
+                  Save
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleReset} className="gap-2">
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Reset
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </motion.div>
+
+        {/* Example Library */}
+        <ExampleLibrary onSelect={handleLoadExample} />
 
         <div className="grid gap-8 lg:grid-cols-3">
           {/* Left: Scoring Sections */}
@@ -165,11 +219,11 @@ const Index = () => {
                   feasibility={feasibilityAvg}
                   agentFit={agentAvg}
                   recommendation={recommendation}
+                  savedUseCases={savedUseCases}
                 />
               </CardContent>
             </Card>
 
-            {/* Decision table */}
             <Card className="shadow-card">
               <CardContent className="p-4">
                 <h3 className="text-sm font-semibold text-foreground mb-3">Decision Matrix</h3>
@@ -191,6 +245,13 @@ const Index = () => {
             </Card>
           </div>
         </div>
+
+        {/* Comparison Table */}
+        <ComparisonView
+          useCases={savedUseCases}
+          onRemove={handleRemove}
+          onLoad={handleLoad}
+        />
       </main>
     </div>
   );
