@@ -20,7 +20,7 @@ import ExampleLibrary from "@/components/ExampleLibrary";
 import { SavedUseCase, EXAMPLE_USE_CASES } from "@/lib/useCaseData";
 import { parseScorecardState, serializeScorecardState, buildScoreSummaryText } from "@/lib/scoreStateUrl";
 import { motion } from "framer-motion";
-import { Bot, TrendingUp, Wrench, RotateCcw, Save, Link2, Copy } from "lucide-react";
+import { Bot, TrendingUp, Wrench, RotateCcw, Save, Link2, Copy, Maximize2, Minimize2 } from "lucide-react";
 import { toast } from "sonner";
 
 const INTRO_STORAGE_KEY = "agent-scorecard-intro-dismissed";
@@ -71,6 +71,7 @@ const Index = () => {
   const [businessScores, setBusinessScores] = useState(initScores(businessValueCriteria));
   const [feasibilityScores, setFeasibilityScores] = useState(initScores(feasibilityCriteria));
   const [savedUseCases, setSavedUseCases] = useState<SavedUseCase[]>([]);
+  const [chartExpanded, setChartExpanded] = useState(false);
   const [introOpen, setIntroOpen] = useState(() => {
     try {
       return localStorage.getItem(INTRO_STORAGE_KEY) !== "1";
@@ -335,17 +336,6 @@ const Index = () => {
               recommendation={recommendation}
               useCaseName={useCaseName}
             />
-            <Card className="shadow-card">
-              <CardContent className="p-4">
-                <BubbleChart
-                  businessValue={businessAvg}
-                  feasibility={feasibilityAvg}
-                  agentFit={agentAvg}
-                  recommendation={recommendation}
-                  savedUseCases={savedUseCases}
-                />
-              </CardContent>
-            </Card>
 
             <Card className="shadow-card">
               <CardContent className="p-4">
@@ -368,6 +358,57 @@ const Index = () => {
             </Card>
           </div>
         </div>
+
+        {/* Expandable Chart + Scorecard side by side */}
+        <Card className="shadow-card overflow-hidden">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-foreground">Priority Matrix</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setChartExpanded((p) => !p)}
+                className="gap-1.5 text-xs text-muted-foreground"
+              >
+                {chartExpanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+                {chartExpanded ? "Collapse" : "Expand"}
+              </Button>
+            </div>
+            <motion.div
+              layout
+              className={chartExpanded ? "grid md:grid-cols-2 gap-6 items-start" : ""}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+            >
+              <div className={chartExpanded ? "w-full" : "max-w-xs mx-auto"}>
+                <BubbleChart
+                  businessValue={businessAvg}
+                  feasibility={feasibilityAvg}
+                  agentFit={agentAvg}
+                  recommendation={recommendation}
+                  savedUseCases={savedUseCases}
+                  expanded={chartExpanded}
+                />
+              </div>
+              {chartExpanded && (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.15 }}
+                  className="space-y-4"
+                >
+                  <ResultsPanel
+                    agentFit={agentAvg}
+                    businessValue={businessAvg}
+                    feasibility={feasibilityAvg}
+                    finalScore={finalScore}
+                    recommendation={recommendation}
+                    useCaseName={useCaseName}
+                  />
+                </motion.div>
+              )}
+            </motion.div>
+          </CardContent>
+        </Card>
 
         <ComparisonView useCases={savedUseCases} onRemove={handleRemove} onLoad={handleLoad} />
       </main>
