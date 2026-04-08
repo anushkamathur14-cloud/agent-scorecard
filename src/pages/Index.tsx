@@ -385,14 +385,14 @@ const Index = () => {
 
         {/* Expanded chart dialog */}
         <Dialog open={chartExpanded} onOpenChange={setChartExpanded}>
-          <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Priority Matrix — {useCaseName || "Current Scenario"}</DialogTitle>
               <DialogDescription>
                 Bubble position shows feasibility vs. business value. Bubble size reflects agent fit.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid md:grid-cols-2 gap-6 items-start pt-2">
+            <div className="grid md:grid-cols-[1.2fr_1fr] gap-8 items-start pt-2">
               <BubbleChart
                 businessValue={businessAvg}
                 feasibility={feasibilityAvg}
